@@ -1,0 +1,17 @@
+{
+    "contents" : "\n\nif(!(\"futile.logger\" %in% rownames(installed.packages()))){\n        install.packages(\"futile.logger\")  \n}\nif(!(\"R.utils\" %in% rownames(installed.packages()))){\n        install.packages(\"R.utils\")  \n}\n\nif(!exists(\"mainFullDF\")){\n        mainFullDF <<- NULL\n}\n\nlibrary(futile.logger)\n\nmainFileURL <- \"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2\";\ncompressedFiledPATH <- paste0(getwd(),\"/StormData.csv.bz2\")\nunCompressedFiledPATH <- paste0(getwd(),\"/\",\"StormData.csv\")\ngetFileByURL <- function(url){\n        flog.info(paste0(\"into getFileByURL where url is: \",url))\n                if(!file.exists(compressedFiledPATH) & !file.exists(unCompressedFiledPATH)){\n                        flog.info(paste0(\"file named \",compressedFiledPATH,\" doesnt exists.\"))\n                        \n                        download.file(url, compressedFiledPATH)\n                        \n                        flog.info(paste0(\"file: \",compressedFiledPATH,\"downloaded with succsseful.\"))\n                }\n        flog.info(paste0(\"file named \",compressedFiledPATH,\" exists.\"))\n        \n}\n\n\nreadMainFullDT <- function(){\n        flog.info(paste0(\"into unzipFile, named: \",compressedFiledPATH))\n                flog.info(paste0(\"file named: \",compressedFiledPATH,\" exists.. will be decompressed.\"))\n                \n                if (!file.exists(unCompressedFiledPATH)) {\n                        library(R.utils)\n                        bunzip2(compressedFiledPATH,unCompressedFiledPATH, remove = T)\n                }\n\n                flog.info(paste0(\"file named: \",compressedFiledPATH,\" decompressed, successful!\"))\n        \n        flog.info(paste0(\"The file named: \",compressedFiledPATH, \"is already decompressed.\"))\n}\n\nreadMainFullDF <- function(){\n        flog.info(paste0(\"into readMainFullDF\"))\n        \n        if (is.null(mainFullDF)) {\n                mainFullDF <<- read.csv2(unCompressedFiledPATH, header = TRUE, sep = \",\")\n        }\n        flog.info(paste0(\"mainFullDF generated!\"))\n\n}\n\n\ngetFileByURL(mainFileURL)\nreadMainFullDT()\nreadMainFullDF()\n",
+    "created" : 1432195390961.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3436180268",
+    "id" : "770E2B2E",
+    "lastKnownWriteTime" : 1432207508,
+    "path" : "C:/Users/JoaoBoscoJares/workspace/coursera/ReproducibleResearch_PeerAssessment2/project/global.R",
+    "project_path" : "global.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}
