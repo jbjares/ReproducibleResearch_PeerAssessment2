@@ -6,12 +6,16 @@ if(!("futile.logger" %in% rownames(installed.packages()))){
 if(!("R.utils" %in% rownames(installed.packages()))){
         install.packages("R.utils")  
 }
+if(!("data.table" %in% rownames(installed.packages()))){
+        install.packages("data.table")  
+}
 
-if(!exists("mainFullDF")){
-        mainFullDF <<- NULL
+if(!exists("mainFullDT")){
+        mainFullDT <<- NULL
 }
 
 library(futile.logger)
+library(data.table)
 
 mainFileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2";
 compressedFiledPATH <- paste0(getwd(),"/StormData.csv.bz2")
@@ -30,7 +34,7 @@ getFileByURL <- function(url){
 }
 
 
-readMainFullDT <- function(){
+unConpressFile <- function(){
         flog.info(paste0("into unzipFile, named: ",compressedFiledPATH))
                 flog.info(paste0("file named: ",compressedFiledPATH," exists.. will be decompressed."))
                 
@@ -44,11 +48,11 @@ readMainFullDT <- function(){
         flog.info(paste0("The file named: ",compressedFiledPATH, "is already decompressed."))
 }
 
-readMainFullDF <- function(){
+readMainFullDT <- function(){
         flog.info(paste0("into readMainFullDF"))
         
-        if (is.null(mainFullDF)) {
-                mainFullDF <<- read.csv2(unCompressedFiledPATH, header = TRUE, sep = ",")
+        if (is.null(mainFullDT)) {
+                mainFullDT <<- data.table(read.csv2(unCompressedFiledPATH, header = TRUE, sep = ","),keep.rownames=TRUE)
         }
         flog.info(paste0("mainFullDF generated!"))
 
@@ -56,5 +60,5 @@ readMainFullDF <- function(){
 
 
 getFileByURL(mainFileURL)
+unConpressFile()
 readMainFullDT()
-readMainFullDF()
