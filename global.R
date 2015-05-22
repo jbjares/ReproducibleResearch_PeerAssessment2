@@ -9,6 +9,9 @@ if(!("R.utils" %in% rownames(installed.packages()))){
 if(!("data.table" %in% rownames(installed.packages()))){
         install.packages("data.table")  
 }
+if(!("xtable" %in% rownames(installed.packages()))){
+        install.packages("xtable")  
+}
 
 if(!exists("mainFullDT")){
         mainFullDT <<- NULL
@@ -16,6 +19,7 @@ if(!exists("mainFullDT")){
 
 library(futile.logger)
 library(data.table)
+library(xtable)
 
 mainFileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2";
 compressedFiledPATH <- paste0(getwd(),"/StormData.csv.bz2")
