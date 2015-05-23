@@ -5,23 +5,249 @@ date: "Friday, May 22, 2015"
 output: html_document
 ---
 
-```{r firstchunk, cache=TRUE, echo=TRUE}
-source("global.R")
+Summary
+=========================================
+
+###Installing packages
+
+```{r, echo=TRUE, cache=TRUE,results='hide'}
+
+if(!("futile.logger" %in% rownames(installed.packages()))){
+        install.packages("futile.logger")  
+}
+if(!("R.utils" %in% rownames(installed.packages()))){
+        install.packages("R.utils")  
+}
+if(!("dplyr" %in% rownames(installed.packages()))){
+        install.packages("dplyr")  
+}
+if(!("sqldf" %in% rownames(installed.packages()))){
+        install.packages("sqldf")
+}
+
+#install.packages("devtools")
+library(devtools)
+install_github("easyGgplot2", "kassambara")
+
+
 ```
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r mainDullDTSummary, cache=TRUE, echo=TRUE, results='asis'}
+###Main data.frame cache and other variables definition
+```{r, echo=TRUE, cache=TRUE,results='hide',cache.vars='mainFullDF', cache.vars='mainFileURL', cache.vars='compressedFiledPATH',cache.vars='unCompressedFiledPATH'}
+if(!exists("mainFullDF")){
+        mainFullDF <<- NULL
+}
 
-xt <- xtable(summary(mainFullDT))
-print(xt, type="html")
+mainFileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2";
+compressedFiledPATH <- paste0(getwd(),"/StormData.csv.bz2")
+unCompressedFiledPATH <- paste0(getwd(),"/","StormData.csv")
+
 ```
 
-You can also embed plots, for example:
+###Get the main file
+```{r, echo=TRUE, cache=TRUE,results='hide'}
+getFileByURL <- function(url){
+        flog.info(paste0("into getFileByURL where url is: ",url))
+                if(!file.exists(compressedFiledPATH) & !file.exists(unCompressedFiledPATH)){
+                        flog.info(paste0("file named ",compressedFiledPATH," doesnt exists."))
+                        
+                        download.file(url, compressedFiledPATH)
+                        
+                        flog.info(paste0("file: ",compressedFiledPATH,"downloaded with succsseful."))
+                }
+        flog.info(paste0("file named ",compressedFiledPATH," exists."))
+        
+}
 
-```{r, echo=FALSE}
-plot(cars)
+getFileByURL(mainFileURL)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+###Extract the main file
+```{r, echo=TRUE, cache=TRUE,results='hide'}
+unConpressFile <- function(){
+        flog.info(paste0("into unzipFile, named: ",compressedFiledPATH))
+                flog.info(paste0("file named: ",compressedFiledPATH," exists.. will be decompressed."))
+                
+                if (!file.exists(unCompressedFiledPATH)) {
+                        library(R.utils)
+                        bunzip2(compressedFiledPATH,unCompressedFiledPATH, remove = T)
+                }
+
+                flog.info(paste0("file named: ",compressedFiledPATH," decompressed, successful!"))
+        
+        flog.info(paste0("The file named: ",compressedFiledPATH, "is already decompressed."))
+}
+
+unConpressFile()
+
+```
+
+###Read the main file
+```{r, echo=TRUE, cache=TRUE,results='hide',cache.vars='mainFullDF'}
+readMainFullDF <- function(){
+        flog.info(paste0("into readMainFullDF"))
+        
+        if (is.null(mainFullDF)) {
+                mainFullDF <<- read.csv2(unCompressedFiledPATH, header = TRUE, sep = ",")
+        }
+        flog.info(paste0("mainFullDF generated!"))
+
+}
+
+readMainFullDF()
+
+```
+
+
+###Read the main file
+```{r, echo=TRUE, cache=TRUE,results='hide',cache.vars='mainFullDF'}
+createNewCollumnWithYearsAsInt <- function(){
+        library(dplyr)
+        flog.info(paste0("into createNewCollumnWithYearsAsInt"))
+        if (dim(mainFullDF)[2] == 38) {
+                flog.info(paste0("will return NULL"))
+                return(NULL)
+        }
+        mainFullDF <<- mainFullDF %>%
+                mutate(FYEARS = (as.numeric(format(as.Date(BGN_DATE, format = "%m/%d/%Y %H:%M:%S"), "%Y"))))
+        
+        flog.info(paste0("out createNewCollumnWithYearsAsInt"))
+}
+createNewCollumnWithYearsAsInt()
+
+```
+
+
+```{r,echo=FALSE}
+hist(mainFullDF$FYEARS, breaks = 10)
+```
+
+On the graphic above is evident that the most number of  accurate records begins from 1990 to 2010. So, I decided to use a subset the whole dataset between those two dates.
+
+
+```{r, echo=TRUE,cache.vars='mainFullDF'}
+library(sqldf)
+        mainFullDF <<- sqldf("select * from mainFullDF where FYEARS >= '1990' and FYEARS < '2011'")
+```
+
+
+Results
+=====================================
+
+###The number of Fatalities
+```{r, echo=TRUE, results='markup',cache.vars='sumOfFatalities',cache.vars='sumOfFatalitiesTop10'}
+library(sqldf)
+        sumOfFatalities <- sqldf("select EVTYPE, sum(FATALITIES) as sumF from mainFullDF where FYEARS >= '1990' and FYEARS < '2011' group by EVTYPE")
+print(paste0("The number of Fatalities between 1990 and 2010 was ",sum(sumOfFatalities[2])))
+
+        sumOfFatalitiesTop10 <- sqldf("select EVTYPE, sum(FATALITIES) as sumF from mainFullDF where FYEARS >= '1990' and FYEARS < '2011' group by EVTYPE order by sumF desc limit 10")
+
+print(sumOfFatalitiesTop10)
+
+```
+
+
+```{r,cache=TRUE}
+library(easyGgplot2)
+ggplot2.barplot(data=sumOfFatalitiesTop10, xName="EVTYPE", yName="sumF",
+                groupName="EVTYPE")
+
+```
+
+
+###The number of Injuries
+```{r, echo=TRUE,cache.vars='sumOfInjuries',cache.vars='sumOfInjuriesTop10'}
+library(sqldf)
+        sumOfInjuries <- sqldf("select EVTYPE, sum(INJURIES) as SumI from mainFullDF where FYEARS >= '1990' and FYEARS < '2011' group by EVTYPE")
+print(paste0("The number of Injuries between 1990 and 2010 was ",sum(sumOfInjuries[2])))
+
+
+        sumOfInjuriesTop10 <- sqldf("select EVTYPE, sum(INJURIES) as SumI from mainFullDF where FYEARS >= '1990' and FYEARS < '2011' group by EVTYPE order by SumI desc limit 10")
+
+print(sumOfInjuriesTop10)
+
+```
+
+
+```{r,cache=TRUE}
+library(easyGgplot2)
+ggplot2.barplot(data=sumOfInjuriesTop10, xName="EVTYPE", yName="SumI",
+                groupName="EVTYPE")
+
+```
+
+
+
+###Subset Prop/Crop Damage Estimates values
+```{r, echo=TRUE}
+mutatePropDMG <- function(){
+        library(dplyr)
+        mainFullDF <<- mainFullDF %>%
+                mutate(FPROPDMG = ifelse(is.null(PROPDMGEXP) | is.na(PROPDMGEXP) | PROPDMGEXP=="",0,
+                                           ifelse(PROPDMGEXP=='H',2,
+                                                  ifelse(PROPDMGEXP=='K',3,
+                                                        ifelse(PROPDMGEXP=='M',6,
+                                                               ifelse(PROPDMGEXP=='B',9,PROPDMGEXP))))))
+}
+
+mutateCropDMG <- function(){
+        library(dplyr)
+        mainFullDF <<- mainFullDF %>%
+                mutate(FCROPDMG = ifelse(is.null(CROPDMGEXP) | is.na(CROPDMGEXP) | CROPDMGEXP=="",0,
+                                           ifelse(CROPDMGEXP=='H',2,
+                                                  ifelse(CROPDMGEXP=='K',3,
+                                                         ifelse(CROPDMGEXP=='M',6,
+                                                                ifelse(CROPDMGEXP=='B',9,CROPDMGEXP))))))
+        
+}
+
+mutatePropDMG()
+mutateCropDMG()
+names(mainFullDF)
+```
+
+
+```{r,cache=TRUE,cache.vars='sumOfMostdemagepropsTop10'}
+        library(sqldf)
+        sumOfMostdemagepropsTop10 <- sqldf("select EVTYPE, sum(FPROPDMG) as sumProp from mainFullDF group by EVTYPE order by sumProp desc limit 10")
+        
+        print(sumOfMostdemagepropsTop10)
+
+```
+
+
+```{r,cache=TRUE}
+
+library(easyGgplot2)
+ggplot2.barplot(data=sumOfMostdemagepropsTop10, xName="EVTYPE", yName="sumProp",
+                groupName="EVTYPE")
+
+```
+
+
+
+```{r,cache=TRUE,cache.vars='sumOfMostdemageCropsTop10'}
+
+        library(sqldf)
+        sumOfMostdemageCropsTop10 <- sqldf("select EVTYPE, sum(FCROPDMG) as sumCrop from mainFullDF group by EVTYPE order by sumCrop desc limit 10")
+        
+        print(sumOfMostdemageCropsTop10)
+
+```
+
+
+```{r,cache=TRUE}
+
+library(easyGgplot2)
+ggplot2.barplot(data=sumOfMostdemageCropsTop10, xName="EVTYPE", yName="sumCrop",
+                groupName="EVTYPE")
+
+```
+
+
+Conclusion
+================================================
+1) Across the United States (considering the years between 1990 to 2010), the type of event that's most harmful with respect to population health is Tornado, followed by excessive heat, as the graphics and tables above are showing.
+2) Across the United States (considering the years between 1990 to 2010), the types of events that have the greatest economic consequences was Hail, followed by Thunderstorm wind, as the graphics and tables above are showing.

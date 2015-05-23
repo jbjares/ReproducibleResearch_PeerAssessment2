@@ -9,17 +9,22 @@ if(!("R.utils" %in% rownames(installed.packages()))){
 if(!("data.table" %in% rownames(installed.packages()))){
         install.packages("data.table")  
 }
-if(!("xtable" %in% rownames(installed.packages()))){
-        install.packages("xtable")  
+if(!("dplyr" %in% rownames(installed.packages()))){
+        install.packages("dplyr")  
+}
+if(!("sqldf" %in% rownames(installed.packages()))){
+        install.packages("sqldf")
+}
+install.packages('stargazer')
+
+if(!exists("mainFullDF")){
+        mainFullDF <<- NULL
 }
 
-if(!exists("mainFullDT")){
-        mainFullDT <<- NULL
-}
 
 library(futile.logger)
 library(data.table)
-library(xtable)
+library(dplyr)
 
 mainFileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2";
 compressedFiledPATH <- paste0(getwd(),"/StormData.csv.bz2")
@@ -55,14 +60,28 @@ unConpressFile <- function(){
 readMainFullDT <- function(){
         flog.info(paste0("into readMainFullDF"))
         
-        if (is.null(mainFullDT)) {
-                mainFullDT <<- data.table(read.csv2(unCompressedFiledPATH, header = TRUE, sep = ","),keep.rownames=TRUE)
+        if (is.null(mainFullDF)) {
+                mainFullDF <<- read.csv2(unCompressedFiledPATH, header = TRUE, sep = ",")
         }
         flog.info(paste0("mainFullDF generated!"))
 
+}
+
+muateFormatingYears <- function(){
+        library(dplyr)
+        flog.info(paste0("into muateFormatingYears"))
+        if (dim(mainFullDF)[2] == 38) {
+                flog.info(paste0("will return NULL"))
+                return(NULL)
+        }
+        mainFullDF <<- mainFullDF %>%
+                mutate(FYEARS = (as.numeric(format(as.Date(BGN_DATE, format = "%m/%d/%Y %H:%M:%S"), "%Y"))))
+        
+        flog.info(paste0("out muateFormatingYears"))
 }
 
 
 getFileByURL(mainFileURL)
 unConpressFile()
 readMainFullDT()
+muateFormatingYears()
